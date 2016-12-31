@@ -5,10 +5,11 @@ import os
 mounts = [
   {
     'name': 'Example Documentation',
-    'slug': 'example',
+    'slug': 'example',           # optional, fallback on 'name'
     'path': os.path.join(os.path.dirname(__file__), 'example'),
     'index_redirect': 'latest',
-    'aliases': {
+    'index_file': 'index.html',  # default
+    'aliases': {                 # optional
       'latest': 'v1.0.1',
       'stable': 'v1.0.0'
     }
