@@ -28,15 +28,74 @@ import os
 import sys
 
 app = flask.Flask(__name__)
-app.template_dir = os.path.dirname(__file__)
 
 import config
 
 
+def preprocess_configuration():
+  for mount in config.mounts:
+    mount.setdefault('slug', mount['name'])
+    mount.setdefault('aliases', {})
+    mount.setdefault('index_file', 'index.html')
+
+def find_mount_by_slug(slug):
+  " Finds information on a mount by the given *slug* or aborts with 404. "
+  for mount in config.mounts:
+    if mount['slug'] == slug:
+      return mount
+  flask.abort(404)
+
+def get_mount_versions(mount):
+  versions = list(mount.get('aliases', {}).keys())
+  if os.path.isdir(mount['path']):
+    versions += os.listdir(mount['path'])
+  return versions
+
+def serve_doc_file(mount, version, file, undoc=False):
+  real_version = mount['aliases'].get(version, version)
+  path = os.path.join(mount['path'], real_version, file)
+  if not os.path.exists(path):
+    flask.abort(404)
+  if os.path.isdir(path):
+    path = os.path.join(path, mount['index_file'])
+  if not undoc and (path.endswith('.htm') or path.endswith('.html')):
+    url = flask.url_for('undoc', slug=mount['slug'], version=version, file=file)
+    with open(path) as fp:
+      return flask.render_template(
+        'docbrowser/wrapper.jhtml', url=url, page_title=mount['name'],
+        current_version=version, versions=get_mount_versions(mount),
+        file=file, mount=mount
+      )
+  dirname, filename = os.path.split(path)
+  return flask.helpers.send_from_directory(dirname, filename)
+
 @app.route('/')
 def index():
-  return 'Index page'
+  docs = []
+  for mount in config.mounts:
+    versions = get_mount_versions(mount)
+    docs.append({'info': mount, 'versions': versions})
+  return flask.render_template('docbrowser/index.jhtml', docs=docs)
 
-@app.route('/<path>')
-def display(path):
-  return path
+@app.route('/doc/<slug>')
+def doc_index(slug):
+  mount = find_mount_by_slug(slug)
+  return flask.redirect(flask.url_for(
+    'doc', slug=slug, version=mount['index_redirect']
+  ))
+
+def doc(slug, version, file=''):
+  mount = find_mount_by_slug(slug)
+  return serve_doc_file(mount, version, file)
+
+app.add_url_rule('/doc/<slug>/<version>/', 'doc', doc)
+app.add_url_rule('/doc/<slug>/<version>/<path:file>', 'doc', doc)
+
+def undoc(slug, version, file=''):
+  mount = find_mount_by_slug(slug)
+  return serve_doc_file(mount, version, file, undoc=True)
+
+app.add_url_rule('/undoc/<slug>/<version>/', 'undoc', undoc)
+app.add_url_rule('/undoc/<slug>/<version>/<path:file>', 'undoc', undoc)
+
+preprocess_configuration()
