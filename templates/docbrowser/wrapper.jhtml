@@ -1,12 +1,12 @@
 <!DOCTYPE>
 <html>
   <head>
-    <title>{{ page_title or "Docbrowser" }}</title>
+    <title>{{ page_title or "Docbrowser" }} &ndash; {{ current_version }}</title>
     <link rel="stylesheet" href="/static/docbrowser/style.css"/>
   </head>
   <body>
     <div id="header">
-      <span id="title">{{ page_title or "Docbrowser" }}</span>
+      <span id="title">{{ page_title or "Docbrowser" }} ({{ current_real_version }})</span>
       <span id="version">&nbsp;
         <select id="version-select">
           {% for version in versions %}

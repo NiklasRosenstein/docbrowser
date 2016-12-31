@@ -65,8 +65,8 @@ def serve_doc_file(mount, version, file, undoc=False):
     with open(path) as fp:
       return flask.render_template(
         'docbrowser/wrapper.jhtml', url=url, page_title=mount['name'],
-        current_version=version, versions=get_mount_versions(mount),
-        file=file, mount=mount
+        current_version=version, current_real_version=real_version,
+        versions=get_mount_versions(mount), file=file, mount=mount
       )
   dirname, filename = os.path.split(path)
   return flask.helpers.send_from_directory(dirname, filename)
