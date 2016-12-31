@@ -48,7 +48,9 @@ def find_mount_by_slug(slug):
 def get_mount_versions(mount):
   versions = list(mount.get('aliases', {}).keys())
   if os.path.isdir(mount['path']):
-    versions += os.listdir(mount['path'])
+    for item in os.listdir(mount['path']):
+      if os.path.isdir(os.path.join(mount['path'], item)):
+        versions.append(item)
   return versions
 
 def serve_doc_file(mount, version, file, undoc=False):
