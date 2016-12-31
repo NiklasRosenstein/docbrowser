@@ -37,6 +37,7 @@ def preprocess_configuration():
     mount.setdefault('slug', mount['name'])
     mount.setdefault('aliases', {})
     mount.setdefault('index_file', 'index.html')
+    mount.setdefault('version_sort', lambda v1, v2: v1 < v2)
 
 def find_mount_by_slug(slug):
   " Finds information on a mount by the given *slug* or aborts with 404. "
@@ -46,15 +47,19 @@ def find_mount_by_slug(slug):
   flask.abort(404)
 
 def get_mount_versions(mount):
-  versions = list(mount.get('aliases', {}).keys())
   if os.path.isdir(mount['path']):
+    versions = []
     for item in os.listdir(mount['path']):
       if os.path.isdir(os.path.join(mount['path'], item)):
         versions.append(item)
-  return versions
+    versions.sort(cmp=mount['version_sort'])
+    return list(mount.get('aliases', {}).keys()) + versions
+  return []
 
 def serve_doc_file(mount, version, file, undoc=False):
   real_version = mount['aliases'].get(version, version)
+  if callable(real_version):
+    real_version = real_version(get_mount_versions(mount))
   path = os.path.join(mount['path'], real_version, file)
   if not os.path.exists(path):
     flask.abort(404)
