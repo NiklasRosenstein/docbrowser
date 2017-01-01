@@ -2,6 +2,8 @@
 
 import os
 
+html_parser = 'lxml'
+html_formatter = 'minimal'
 mounts = [
   {
     'name': 'Example Documentation',

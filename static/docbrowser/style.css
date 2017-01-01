@@ -1,28 +1,10 @@
-html {
-  font-family: sans-serif;
+#docbrowser-header {
+  font: 14px/20px sans-serif;
+  color: #193244;
+  background-color: #61bdff;
+  border-bottom: 5px solid #ffe585;
+  padding: 10px 15px;
 }
-iframe {
-  border: 0;
-  width: 100%;
-  height: 100%;
-}
-#iframe-parent {
-  position: absolute;
-  top: 40px; bottom: 0; left: 0; right: 0;
-}
-#header {
-  color: white;
-  background-color: #3978a5;
-  border-bottom: 1px solid #cceaff;
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 30px;
-  padding: 5px 15px;
-}
-#title {
-  line-height: 30px;
-}
-#version {
-  line-height: 30px;
-  float: right;
+#docbrowser-header .version {
+  margin-left: 1em;
 }

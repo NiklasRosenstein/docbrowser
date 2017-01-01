@@ -8,6 +8,8 @@ __Requirements__
 
 - Python
 - Flask
+- BeautifulSoup4
+- LXML (optional)
 
 To run Docbrowser, use `python run.py` (your choice of Python 2 or 3).
 
@@ -21,6 +23,7 @@ below for reference.
 
 import os
 
+html_parser = 'lxml'
 mounts = [
   {
     'name': 'Example Documentation',

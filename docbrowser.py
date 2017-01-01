@@ -23,6 +23,7 @@ that inserts a little header to switch between different versions of the
 content.
 """
 
+import bs4
 import flask
 import os
 import sys
@@ -65,14 +66,32 @@ def serve_doc_file(mount, version, file, undoc=False):
     flask.abort(404)
   if os.path.isdir(path):
     path = os.path.join(path, mount['index_file'])
+
   if not undoc and (path.endswith('.htm') or path.endswith('.html')):
-    url = flask.url_for('undoc', slug=mount['slug'], version=version, file=file)
     with open(path) as fp:
-      return flask.render_template(
-        'docbrowser/wrapper.jhtml', url=url, page_title=mount['name'],
-        current_version=version, current_real_version=real_version,
-        versions=get_mount_versions(mount), file=file, mount=mount
-      )
+      soup = bs4.BeautifulSoup(fp.read(), config.html_parser)
+    wrapper = soup.new_tag('div', **{'data-role': 'content'})
+    body_children = list(soup.body.children)
+
+    # Render the header content and append it to the HTML page.
+    header_string = flask.render_template(
+      'docbrowser/header.jhtml', current_version=version, mount=mount,
+      current_real_version=real_version, versions=get_mount_versions(mount)
+    )
+    header_soup = bs4.BeautifulSoup(header_string, config.html_parser)
+
+    if soup.head and header_soup.head:
+      for child in list(header_soup.head.children):
+        soup.head.append(child)
+    elif header_soup.head:
+      soup.body.insert_before(header_soup.head)
+
+    soup.body.append(header_soup.div)
+    soup.body.append(wrapper)
+    for child in body_children:
+      wrapper.append(child)
+    return soup.prettify(formatter=config.html_formatter)
+
   dirname, filename = os.path.split(path)
   return flask.helpers.send_from_directory(dirname, filename)
 
@@ -97,12 +116,5 @@ def doc(slug, version, file=''):
 
 app.add_url_rule('/doc/<slug>/<version>/', 'doc', doc)
 app.add_url_rule('/doc/<slug>/<version>/<path:file>', 'doc', doc)
-
-def undoc(slug, version, file=''):
-  mount = find_mount_by_slug(slug)
-  return serve_doc_file(mount, version, file, undoc=True)
-
-app.add_url_rule('/undoc/<slug>/<version>/', 'undoc', undoc)
-app.add_url_rule('/undoc/<slug>/<version>/<path:file>', 'undoc', undoc)
 
 preprocess_configuration()
