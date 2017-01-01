@@ -57,43 +57,50 @@ def get_mount_versions(mount):
     return list(mount.get('aliases', {}).keys()) + versions
   return []
 
-def serve_doc_file(mount, version, file, undoc=False):
+def serve_doc_file(mount, version, file):
   real_version = mount['aliases'].get(version, version)
   if callable(real_version):
     real_version = real_version(get_mount_versions(mount))
   path = os.path.join(mount['path'], real_version, file)
-  if not os.path.exists(path):
-    flask.abort(404)
   if os.path.isdir(path):
     path = os.path.join(path, mount['index_file'])
 
-  if not undoc and (path.endswith('.htm') or path.endswith('.html')):
+  if not os.path.isfile(path):
+    content = flask.render_template('docbrowser/404.html', path=file)
+    status = 404
+  elif path.endswith('.htm') or path.endswith('.html'):
     with open(path) as fp:
-      soup = bs4.BeautifulSoup(fp.read(), config.html_parser)
-    wrapper = soup.new_tag('div', **{'data-role': 'content'})
-    body_children = list(soup.body.children)
+      content = fp.read()
+    status = 200
+  else:
+    # Send the plain file without preprocessing.
+    dirname, filename = os.path.split(path)
+    return flask.helpers.send_from_directory(dirname, filename)
 
-    # Render the header content and append it to the HTML page.
-    header_string = flask.render_template(
-      'docbrowser/header.jhtml', current_version=version, mount=mount,
-      current_real_version=real_version, versions=get_mount_versions(mount)
-    )
-    header_soup = bs4.BeautifulSoup(header_string, config.html_parser)
+  # Insert the header content.
+  soup = bs4.BeautifulSoup(content, config.html_parser)
+  wrapper = soup.new_tag('div', **{'data-role': 'content'})
+  body_children = list(soup.body.children)
 
-    if soup.head and header_soup.head:
-      for child in list(header_soup.head.children):
-        soup.head.append(child)
-    elif header_soup.head:
-      soup.body.insert_before(header_soup.head)
+  # Render the header content and append it to the HTML page.
+  header_string = flask.render_template(
+    'docbrowser/header.jhtml', current_version=version, mount=mount,
+    current_real_version=real_version, versions=get_mount_versions(mount)
+  )
+  header_soup = bs4.BeautifulSoup(header_string, config.html_parser)
 
-    soup.body.append(header_soup.div)
-    soup.body.append(wrapper)
-    for child in body_children:
-      wrapper.append(child)
-    return soup.prettify(formatter=config.html_formatter)
+  if soup.head and header_soup.head:
+    for child in list(header_soup.head.children):
+      soup.head.append(child)
+  elif header_soup.head:
+    soup.body.insert_before(header_soup.head)
 
-  dirname, filename = os.path.split(path)
-  return flask.helpers.send_from_directory(dirname, filename)
+  soup.body.append(header_soup.div)
+  soup.body.append(wrapper)
+  for child in body_children:
+    wrapper.append(child)
+  return soup.prettify(formatter=config.html_formatter)
+
 
 @app.route('/')
 def index():
