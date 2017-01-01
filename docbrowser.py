@@ -84,7 +84,7 @@ def serve_doc_file(mount, version, file):
 
   # Render the header content and append it to the HTML page.
   header_string = flask.render_template(
-    'docbrowser/header.jhtml', current_version=version, mount=mount,
+    'docbrowser/header.jhtml', current_version=version, mount=mount, file=file,
     current_real_version=real_version, versions=get_mount_versions(mount)
   )
   header_soup = bs4.BeautifulSoup(header_string, config.html_parser)

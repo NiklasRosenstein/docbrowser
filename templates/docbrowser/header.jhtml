@@ -6,12 +6,11 @@
     window.addEventListener('load', function () {
       var loc = document.location;
       var select = document.getElementById('docbrowser-header').getElementsByClassName('version-select')[0]
-      var pathname = document.location.pathname.split('/').slice(4).join('/')
       select.addEventListener('change', function () {
         for (index in select.children) {
           var option = select.children[index];
           if (option.value == this.value) {
-            document.location = option.getAttribute('data-url') + pathname;
+            document.location = option.getAttribute('data-url')
             break
           }
         }
