@@ -19,11 +19,12 @@
 # THE SOFTWARE.
 
 import argparse
+import config
 import docbrowser
 
 parser = argparse.ArgumentParser()
-parser.add_argument('addr', nargs='?', help='[host:]port (default :8000)')
-parser.add_argument('--debug', action='store_true')
+parser.add_argument('addr', nargs='?', help='[host:]port', default=config.address)
+parser.add_argument('--debug', action='store_true', default=config.debug)
 
 def main():
   args = parser.parse_args()
