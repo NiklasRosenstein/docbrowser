@@ -23,7 +23,12 @@ below for reference.
 
 import os
 
+address = 'localhost:8000'
+debug = False
+
 html_parser = 'lxml'
+html_formatter = 'minimal'
+
 mounts = [
   {
     'name': 'Example Documentation',
