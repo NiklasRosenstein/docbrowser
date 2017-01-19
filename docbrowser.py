@@ -37,7 +37,7 @@ def preprocess_configuration():
   for mount in config.mounts:
     mount.setdefault('slug', mount['name'])
     mount.setdefault('aliases', {})
-    mount.setdefault('index_file', 'index.html')
+    mount.setdefault('index_files', ['index.html', 'index.htm'])
     mount.setdefault('version_sort', lambda v1, v2: v1 < v2)
 
 def find_mount_by_slug(slug):
@@ -63,7 +63,14 @@ def serve_doc_file(mount, version, file):
     real_version = real_version(get_mount_versions(mount))
   path = os.path.join(mount['path'], real_version, file)
   if os.path.isdir(path):
-    path = os.path.join(path, mount['index_file'])
+    # Find a matching index file.
+    for item in mount['index_files']:
+      new_path = os.path.join(path, item)
+      if os.path.isfile(new_path):
+        path = new_path
+        break
+    else:
+      flask.abort(404)
 
   if not os.path.isfile(path):
     content = flask.render_template('docbrowser/404.html', path=file)
