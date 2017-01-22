@@ -84,6 +84,9 @@ The `docbrowser.Mount()` constructor takes the following parameters:
   present in the documentation *path*, this parameter defaults to the filename
   `_docbrowser/script.js`, otherwise it will fallback on the DocBrowser default
   script.
+- **cdn_scripts**: A list of URLs to JavaScript files to include before the
+  **header_script**. Defaults to `['https://d3js.org/d3.v4.min.js']`, thus
+  making D3.js available by default.
 
 ---
 

@@ -11,5 +11,10 @@ mounts = [
     name = 'Example Documentation',
     slug = 'example',
     path = os.path.join(os.path.dirname(__file__), 'example')
+  ),
+  Mount(
+    name = 'Cinema 4D C++ SDK',
+    slug = 'c4dsdk',
+    path = os.path.expanduser('~/Downloads')
   )
 ]

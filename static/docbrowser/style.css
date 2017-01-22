@@ -1,16 +1,31 @@
-#docbrowser-header {
-  font: 14px/20px sans-serif;
-  color: #193244;
-  background-color: #61bdff;
-  border-bottom: 5px solid #ffe585;
-  padding: 10px 15px;
+.docbrowser {
+  color: white;
+  font-weight: bold;
+  font-family: sans-serif;
+  font-size: 11px;
 }
-#docbrowser-header * {
-  font-size: inherit;
+
+.docbrowser-root {
+  position: fixed;
+  left: 15px;
+  bottom: 15px;
 }
-#docbrowser-header .version {
-  margin-left: 1em;
+
+.docbrowser-version {
+  position: fixed;
+  left: 15px;
+  bottom: 15px;
+  width: 50px;
+  height: 50px;
+  line-height: 50px;
+  border-radius: 25px;
+  background-color: #5791d8;
+  text-align: center;
+  cursor: pointer;
+  z-index: 100;
 }
-div[data-role="content"] {
-  position: relative;
+
+.docbrowser-version-current {
+  z-index: 101;
+  background-color: #1e5190;
 }

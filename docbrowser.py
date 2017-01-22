@@ -38,13 +38,15 @@ class Mount(object):
 
   def __init__(self, name, slug, path, aliases=None, index_files=None,
                index_redirect='latest', version_sort=None, header_style=None,
-               header_script=None):
+               header_script=None, cdn_scripts=None):
     if aliases is None:
       aliases = {'latest': lambda versions: versions[-1]}
     if index_files is None:
       index_files = ['index.html', 'index.html']
     if version_sort is None:
-      version_sort = lambda v1, v2: v1.lower() < v2.lower()
+      version_sort = lambda v1, v2: v1.lower() > v2.lower()
+    if cdn_scripts is None:
+      cdn_scripts = ['https://d3js.org/d3.v4.js']
 
     self.name = name
     self.slug = slug
@@ -55,6 +57,7 @@ class Mount(object):
     self.version_sort = version_sort
     self.header_style = header_style
     self.header_script = header_script
+    self.cdn_scripts = cdn_scripts
 
   def get_header_style(self):
     if self.header_style:
@@ -62,7 +65,7 @@ class Mount(object):
     filename = os.path.join(self.path, '_docbrowser/style.css')
     if os.path.isfile(filename):
       return filename
-    return os.path.join(os.path.dirname(__file__), 'style.css')
+    return None
 
   def get_header_script(self):
     if self.header_script:
@@ -70,7 +73,15 @@ class Mount(object):
     filename = os.path.join(self.path, '_docbrowser/script.js')
     if os.path.isfile(filename):
       return filename
-    return os.path.join(os.path.dirname(__file__), 'script.js')
+    return None
+
+  def get_header_style_url(self):
+    slug = self.slug if self.get_header_style() else 'docbrowser'
+    return '/static/{}/style.css'.format(slug)
+
+  def get_header_script_url(self):
+    slug = self.slug if self.get_header_style() else 'docbrowser'
+    return '/static/{}/script.js'.format(slug)
 
   def get_versions(self, aliases=True):
     """
@@ -99,9 +110,10 @@ def find_mount_by_slug(slug):
   flask.abort(404)
 
 def serve_doc_file(mount, version, file):
+  versions = mount.get_versions()
   real_version = mount.aliases.get(version, version)
   if callable(real_version):
-    real_version = real_version(mount.get_versions())
+    real_version = real_version(versions)
   path = os.path.join(mount.path, real_version, file)
   if os.path.isdir(path):
     # Find a matching index file.
@@ -126,19 +138,24 @@ def serve_doc_file(mount, version, file):
     return flask.helpers.send_from_directory(dirname, filename)
 
   # This is the content that we need to insert into the header.
+  urls = [flask.url_for('doc', slug=mount.slug, version=v, file=file)
+          for v in versions]
   icontent = textwrap.dedent("""
-    <script>
+    <script type="text/javascript">
       var docbrowser_currentversion = "{current_version}"
-      var docbrowser_currentversion_real = "{current_version_real}"
+      var docbrowser_urls = [{urls}]
       var docbrowser_versions = [{versions}]
     </script>
+    {cdn_scripts}
     <script src="{header_script}"></script>
     <link rel="stylesheet" href="{header_style}"/>""")\
     .format(
       current_version = version, current_version_real = real_version,
       versions = ','.join('"{}"'.format(x) for x in mount.get_versions()),
-      header_style = '/static/{}/style.css'.format(mount.slug),
-      header_script = '/static/{}/script.js'.format(mount.slug)
+      urls = ','.join('"{}"'.format(x) for x in urls),
+      header_style = mount.get_header_style_url(),
+      header_script = mount.get_header_script_url(),
+      cdn_scripts = '\n'.join('<script src="{}"></script>'.format(x) for x in mount.cdn_scripts)
     )
 
   def generate():
@@ -191,11 +208,9 @@ def static(filename):
   if filename.count('/') == 1:
     slug, file = filename.split('/')
     try:
-      mount = find_mount_by_slug(slug)
+      return serve_mount_static(slug, file)
     except werkzeug.exceptions.NotFound:
       pass  # Handle normal static file later
-    else:
-      return serve_mount_static(slug, file)
 
   filename = os.path.join(os.path.dirname(__file__), 'static', filename)
   dirname, filename = os.path.split(filename)
