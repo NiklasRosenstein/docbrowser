@@ -23,48 +23,89 @@ that inserts a little header to switch between different versions of the
 content.
 """
 
-import bs4
 import flask
 import os
 import sys
+import textwrap
+import werkzeug
 
-app = flask.Flask(__name__)
+app = flask.Flask(__name__, static_folder=None)
+
+class Mount(object):
+  """
+  Represents information on a set of documentations.
+  """
+
+  def __init__(self, name, slug, path, aliases=None, index_files=None,
+               index_redirect='latest', version_sort=None, header_style=None,
+               header_script=None):
+    if aliases is None:
+      aliases = {'latest': lambda versions: versions[-1]}
+    if index_files is None:
+      index_files = ['index.html', 'index.html']
+    if version_sort is None:
+      version_sort = lambda v1, v2: v1.lower() < v2.lower()
+
+    self.name = name
+    self.slug = slug
+    self.path = path
+    self.aliases = aliases
+    self.index_files = index_files
+    self.index_redirect = index_redirect
+    self.version_sort = version_sort
+    self.header_style = header_style
+    self.header_script = header_script
+
+  def get_header_style(self):
+    if self.header_style:
+      return self.header_style
+    filename = os.path.join(self.path, '_docbrowser/style.css')
+    if os.path.isfile(filename):
+      return filename
+    return os.path.join(os.path.dirname(__file__), 'style.css')
+
+  def get_header_script(self):
+    if self.header_script:
+      return self.header_script
+    filename = os.path.join(self.path, '_docbrowser/script.js')
+    if os.path.isfile(filename):
+      return filename
+    return os.path.join(os.path.dirname(__file__), 'script.js')
+
+  def get_versions(self, aliases=True):
+    """
+    Lists the available versions and returns it sorted. All defined aliases
+    will be prepended unless *aliases* is False.
+    """
+
+    versions = []
+    if os.path.isdir(self.path):
+      for item in os.listdir(self.path):
+        if os.path.isdir(os.path.join(self.path, item)):
+          versions.append(item)
+      versions.sort(cmp=self.version_sort)
+      if aliases:
+        versions = sorted(self.aliases.keys()) + versions
+    return versions
 
 import config
 
 
-def preprocess_configuration():
-  for mount in config.mounts:
-    mount.setdefault('slug', mount['name'])
-    mount.setdefault('aliases', {})
-    mount.setdefault('index_files', ['index.html', 'index.htm'])
-    mount.setdefault('version_sort', lambda v1, v2: v1 < v2)
-
 def find_mount_by_slug(slug):
   " Finds information on a mount by the given *slug* or aborts with 404. "
   for mount in config.mounts:
-    if mount['slug'] == slug:
+    if mount.slug == slug:
       return mount
   flask.abort(404)
 
-def get_mount_versions(mount):
-  if os.path.isdir(mount['path']):
-    versions = []
-    for item in os.listdir(mount['path']):
-      if os.path.isdir(os.path.join(mount['path'], item)):
-        versions.append(item)
-    versions.sort(cmp=mount['version_sort'])
-    return list(mount.get('aliases', {}).keys()) + versions
-  return []
-
 def serve_doc_file(mount, version, file):
-  real_version = mount['aliases'].get(version, version)
+  real_version = mount.aliases.get(version, version)
   if callable(real_version):
-    real_version = real_version(get_mount_versions(mount))
-  path = os.path.join(mount['path'], real_version, file)
+    real_version = real_version(mount.get_versions())
+  path = os.path.join(mount.path, real_version, file)
   if os.path.isdir(path):
     # Find a matching index file.
-    for item in mount['index_files']:
+    for item in mount.index_files:
       new_path = os.path.join(path, item)
       if os.path.isfile(new_path):
         path = new_path
@@ -84,45 +125,48 @@ def serve_doc_file(mount, version, file):
     dirname, filename = os.path.split(path)
     return flask.helpers.send_from_directory(dirname, filename)
 
-  # Insert the header content.
-  soup = bs4.BeautifulSoup(content, config.html_parser)
-  wrapper = soup.new_tag('div', **{'data-role': 'content'})
-  body_children = list(soup.body.children)
+  # This is the content that we need to insert into the header.
+  icontent = textwrap.dedent("""
+    <script>
+      var docbrowser_currentversion = "{current_version}"
+      var docbrowser_currentversion_real = "{current_version_real}"
+      var docbrowser_versions = [{versions}]
+    </script>
+    <script src="{header_script}"></script>
+    <link rel="stylesheet" href="{header_style}"/>""")\
+    .format(
+      current_version = version, current_version_real = real_version,
+      versions = ','.join('"{}"'.format(x) for x in mount.get_versions()),
+      header_style = '/static/{}/style.css'.format(mount.slug),
+      header_script = '/static/{}/script.js'.format(mount.slug)
+    )
 
-  # Render the header content and append it to the HTML page.
-  header_string = flask.render_template(
-    'docbrowser/header.html', current_version=version, mount=mount, file=file,
-    current_real_version=real_version, versions=get_mount_versions(mount)
-  )
-  header_soup = bs4.BeautifulSoup(header_string, config.html_parser)
+  def generate():
+    parsed_header = False
+    for line in content.splitlines():
+      if not parsed_header:
+        index = line.find('</head>')
+        if index >= 0:
+          line = line[:index] + icontent + line[index:]
+          parsed_header = True
+        index = line.find('<body>')
+        if not parsed_header and index >= 0:
+          line = line[:index] + '<head>' + icontent + '</head>' + line[index:]
+          parsed_header = True
+      yield line
 
-  if soup.head and header_soup.head:
-    for child in list(header_soup.head.children):
-      soup.head.append(child)
-  elif header_soup.head:
-    soup.body.insert_before(header_soup.head)
-
-  soup.body.append(header_soup.div)
-  soup.body.append(wrapper)
-  for child in body_children:
-    wrapper.append(child)
-  return soup.prettify(formatter=config.html_formatter)
+  return flask.Response(generate(), mimetype='text/html')
 
 
 @app.route('/')
 def index():
-  docs = []
-  for mount in config.mounts:
-    versions = get_mount_versions(mount)
-    docs.append({'info': mount, 'versions': versions})
-  return flask.render_template('docbrowser/index.html', docs=docs)
+  return flask.render_template('docbrowser/index.html', docs=config.mounts)
 
 @app.route('/doc/<slug>')
 def doc_index(slug):
   mount = find_mount_by_slug(slug)
   return flask.redirect(flask.url_for(
-    'doc', slug=slug, version=mount['index_redirect']
-  ))
+    'doc', slug=slug, version=mount.index_redirect))
 
 def doc(slug, version, file=''):
   mount = find_mount_by_slug(slug)
@@ -131,4 +175,28 @@ def doc(slug, version, file=''):
 app.add_url_rule('/doc/<slug>/<version>/', 'doc', doc)
 app.add_url_rule('/doc/<slug>/<version>/<path:file>', 'doc', doc)
 
-preprocess_configuration()
+def serve_mount_static(slug, file):
+  mount = find_mount_by_slug(slug)
+  if file == 'style.css':
+    filename = mount.get_header_style()
+  elif file == 'script.js':
+    filename = mount.get_header_script()
+  else:
+    flask.abort(404)
+  dirname, filename = os.path.split(filename)
+  return flask.helpers.send_from_directory(dirname, filename)
+
+@app.route('/static/<path:filename>')
+def static(filename):
+  if filename.count('/') == 1:
+    slug, file = filename.split('/')
+    try:
+      mount = find_mount_by_slug(slug)
+    except werkzeug.exceptions.NotFound:
+      pass  # Handle normal static file later
+    else:
+      return serve_mount_static(slug, file)
+
+  filename = os.path.join(os.path.dirname(__file__), 'static', filename)
+  dirname, filename = os.path.split(filename)
+  return flask.helpers.send_from_directory(dirname, filename)

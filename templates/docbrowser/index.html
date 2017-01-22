@@ -7,11 +7,11 @@
   <body>
     <h1>{{ page_title or "Docbrowser" }}</h1>
     <ul>
-      {% for data in docs %}
-      <li>{{ data.info.name }}</li>
+      {% for mount in docs %}
+      <li>{{ mount.name }}</li>
       <ul>
-        {% for version in data.versions %}
-        <li><a href="{{ url_for('doc', slug=data.info.slug, version=version) }}">{{ version }}</a></li>
+        {% for version in mount.get_versions() %}
+        <li><a href="{{ url_for('doc', slug=mount.slug, version=version) }}">{{ version }}</a></li>
         {% endfor %}
       </ul>
       {% endfor %}

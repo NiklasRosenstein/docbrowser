@@ -5,6 +5,12 @@
   border-bottom: 5px solid #ffe585;
   padding: 10px 15px;
 }
+#docbrowser-header * {
+  font-size: inherit;
+}
 #docbrowser-header .version {
   margin-left: 1em;
+}
+div[data-role="content"] {
+  position: relative;
 }
