@@ -109,7 +109,7 @@ def find_mount_by_slug(slug):
       return mount
   flask.abort(404)
 
-def serve_doc_file(mount, version, file):
+def serve_doc_file(mount, version, file, check_only=False):
   versions = mount.get_versions()
   real_version = mount.aliases.get(version, version)
   if callable(real_version):
@@ -126,19 +126,20 @@ def serve_doc_file(mount, version, file):
       flask.abort(404)
 
   if not os.path.isfile(path):
-    content = flask.render_template('docbrowser/404.html', path=file)
-    status = 404
+    flask.abort(404)
   elif path.endswith('.htm') or path.endswith('.html'):
     with open(path) as fp:
       content = fp.read()
     status = 200
-  else:
+  elif not check_only:
     # Send the plain file without preprocessing.
     dirname, filename = os.path.split(path)
     return flask.helpers.send_from_directory(dirname, filename)
+  if check_only:
+    return None
 
   # This is the content that we need to insert into the header.
-  urls = [flask.url_for('doc', slug=mount.slug, version=v, file=file)
+  urls = [flask.url_for('doc', slug=mount.slug, version=v, file=file) + '?doredirect=true'
           for v in versions]
   icontent = textwrap.dedent("""
     <script type="text/javascript">
@@ -186,8 +187,18 @@ def doc_index(slug):
     'doc', slug=slug, version=mount.index_redirect))
 
 def doc(slug, version, file=''):
-  mount = find_mount_by_slug(slug)
-  return serve_doc_file(mount, version, file)
+  doredirect = (flask.request.args.get('doredirect') == 'true')
+  try:
+    mount = find_mount_by_slug(slug)
+    response = serve_doc_file(mount, version, file, check_only=doredirect)
+  except werkzeug.exceptions.NotFound:
+    if doredirect and file:
+      return flask.redirect(flask.url_for('doc_index', slug=slug))
+    raise
+  if doredirect:
+    # Redirect to the same page without the ?doredirect=true part.
+    return flask.redirect(flask.url_for('doc', slug=slug, version=version, file=file))
+  return response
 
 app.add_url_rule('/doc/<slug>/<version>/', 'doc', doc)
 app.add_url_rule('/doc/<slug>/<version>/<path:file>', 'doc', doc)
