@@ -18,9 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 """
-A Python web application serving static content, such as API documentation,
-that inserts a little header to switch between different versions of the
-content.
+A Node.py-Flask web application that serves static content, such as API
+documentation, and inserts a little header to switch between different
+versions of the content.
 """
 
 import flask
@@ -28,76 +28,11 @@ import os
 import sys
 import textwrap
 import werkzeug
+import sites from './sites'
 
 app = flask.Flask(__name__, static_folder=None)
 
-class Mount(object):
-  """
-  Represents information on a set of documentations.
-  """
 
-  def __init__(self, name, slug, path, aliases=None, index_files=None,
-               index_redirect='latest', version_sort=None, header_style=None,
-               header_script=None, cdn_scripts=None):
-    if aliases is None:
-      aliases = {'latest': lambda versions: versions[-1]}
-    if index_files is None:
-      index_files = ['index.html', 'index.html']
-    if version_sort is None:
-      version_sort = lambda v1, v2: v1.lower() > v2.lower()
-    if cdn_scripts is None:
-      cdn_scripts = ['https://d3js.org/d3.v4.js']
-
-    self.name = name
-    self.slug = slug
-    self.path = path
-    self.aliases = aliases
-    self.index_files = index_files
-    self.index_redirect = index_redirect
-    self.version_sort = version_sort
-    self.header_style = header_style
-    self.header_script = header_script
-    self.cdn_scripts = cdn_scripts
-
-  def get_header_style(self):
-    if self.header_style:
-      return self.header_style
-    filename = os.path.join(self.path, '_docbrowser/style.css')
-    if os.path.isfile(filename):
-      return filename
-    return None
-
-  def get_header_script(self):
-    if self.header_script:
-      return self.header_script
-    filename = os.path.join(self.path, '_docbrowser/script.js')
-    if os.path.isfile(filename):
-      return filename
-    return None
-
-  def get_header_style_url(self):
-    slug = self.slug if self.get_header_style() else 'docbrowser'
-    return '/static/{}/style.css'.format(slug)
-
-  def get_header_script_url(self):
-    slug = self.slug if self.get_header_style() else 'docbrowser'
-    return '/static/{}/script.js'.format(slug)
-
-  def get_versions(self, aliases=True):
-    """
-    Lists the available versions and returns it sorted. All defined aliases
-    will be prepended unless *aliases* is False.
-    """
-
-    versions = []
-    if os.path.isdir(self.path):
-      for item in os.listdir(self.path):
-        if os.path.isdir(os.path.join(self.path, item)):
-          versions.append(item)
-      versions.sort(cmp=self.version_sort)
-      if aliases:
-        versions = sorted(self.aliases.keys()) + versions
-    return versions
 
 import config
 

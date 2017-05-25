@@ -1,0 +1,16 @@
+{
+  "host": "localhost",
+  "port": "8000",
+  "debug": false,
+  "server": "localhost:8000",
+  "sites": {
+    "Example Documentation": {
+      "slug": "example",
+      "path": "./example",
+      "alias": {
+        "latest": "$highest",
+        "stable": "v1.0.0"
+      }
+    }
+  }
+}
