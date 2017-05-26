@@ -1,16 +1,17 @@
 {
   "host": "localhost",
-  "port": "8000",
-  "debug": false,
+  "port": 8000,
+  "debug": true,
   "server": "localhost:8000",
   "sites": {
     "Example Documentation": {
       "slug": "example",
       "path": "./example",
-      "alias": {
+      "aliases": {
         "latest": "$highest",
         "stable": "v1.0.0"
       }
     }
-  }
+  },
+  "disqus_id": "niklasrosenstein-com"
 }

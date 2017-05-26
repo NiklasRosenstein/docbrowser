@@ -1,0 +1,51 @@
+#docbrowser {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+#docbrowser .inner {
+  pointer-events: auto;
+  height: 100%;
+  padding: 1em;
+  background-color: white;
+  border-right: 1px solid gray;
+  font: 16px monospace;
+  width: 600px
+}
+#docbrowser .row {
+  display: flex;
+  align-items: center;
+}
+#docbrowser .flex {
+  flex: 1;
+}
+#docbrowser hr {
+  border: 0px solid gray;
+  border-bottom-width: 1px;
+  margin: 1em 0;
+}
+#docbrowser-close, #docbrowser-open {
+  background: transparent;
+  width: 24px;
+  height: 24px;
+  border: none;
+  cursor: pointer;
+}
+#docbrowser-close {
+  float: right;
+  background-image: url(/static/docbrowser/previous.png);
+}
+#docbrowser-open {
+  transition: left 0.5s;
+  position: fixed;
+  left: -10px;
+  bottom: 2em;
+  background-image: url(/static/docbrowser/next.png);
+}
+#docbrowser-open:hover {
+  left: 0;
+}

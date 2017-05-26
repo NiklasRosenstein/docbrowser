@@ -1,20 +1,20 @@
 <!DOCTYPE>
 <html>
   <head>
-    <title>{{ page_title or "Docbrowser" }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='docbrowser/style.css') }}"/>
+    <title>Docbrowser</title>
+    <link rel="stylesheet" href="{{ static('docbrowser/index.css') }}"/>
   </head>
   <body>
-    <h1>{{ page_title or "Docbrowser" }}</h1>
-    <ul>
-      {% for mount in docs %}
-      <li>{{ mount.name }}</li>
-      <ul>
-        {% for version in mount.get_versions() %}
-        <li><a href="{{ url_for('doc', slug=mount.slug, version=version) }}">{{ version }}</a></li>
-        {% endfor %}
-      </ul>
+    <h1>Docbrowser</h1>
+    <table>
+      {% for name, slug, versions, aliases in sites %}
+      <tr>
+        <th><a href="{{ url_for('view', slug=slug) }}">{{ name }}</a></th>
+        <td>
+          {% include "docbrowser/partials/version-select.html" %}
+        </td>
+      </tr>
       {% endfor %}
-    </ul>
+    </table>
   </body>
 </html>

@@ -32,22 +32,44 @@ Handles processing the site configuration. A site is configured like this:
       "stable": "directory-name"
     },
     "preprocessor": [
-      "./docbrowser-preprocessor"
+      "./preprocessor"
     ]
   }
 }
 ```
-
-A pre-processor must provide a `preprocess_html(config, site_config, version, path, html)`
-member which must return a modified version of *html*.
 """
 
+import flask
+import os
 import config from './config.json'
+import decorators from './decorators'
 
 class NotFound(Exception):
   pass
 
-def get_versions(site_name):
+def get_site(site_slug):
+  """
+  Returns a site by its slug.
+  """
+
+  for site_name, site in config['sites'].items():
+    if site['slug'] == site_slug:
+      return site_name, site
+  raise NotFound(site_slug)
+
+@decorators.as_list
+def get_sites(with_versions=False):
+  """
+  Returns a list of (name, slug) tuples of all available sites.
+  """
+
+  for site_name, site in config['sites'].items():
+    result = (site_name, site['slug'])
+    if with_versions:
+      result += get_versions(site['slug'])
+    yield result
+
+def get_versions(site_slug):
   """
   Returns two lists of all the available versions of a site. The first list
   contains all versions found in the site directory, the other list contains
@@ -56,9 +78,7 @@ def get_versions(site_name):
   Raises #NotFound if the site does not exist.
   """
 
-  site = config['sites'].get(site_name)
-  if site is None:
-    raise NotFound(site_name)
+  site = get_site(site_slug)[1]
   versions = []
 
   dirname = os.path.expanduser(site['path'])
@@ -71,7 +91,7 @@ def get_versions(site_name):
   aliases = list(site.get('aliases', {}).keys())
   return versions, aliases
 
-def get_index_redirect(site_name):
+def get_index_redirect(site_slug):
   """
   Returns the version name to redirect to when accessing a site's index page.
 
@@ -79,42 +99,63 @@ def get_index_redirect(site_name):
   versions that we can redirect to.
   """
 
-  site = config['site'].get(site_name)
-  if site is None:
-    raise NotFound(site_name)
-
+  site = get_site(site_slug)[1]
   version = site.get('index_redirect')
   if 'latest' in site.get('aliases', {}):
     version = 'latest'
   else:
-    versions = get_versions(site_name)[0]
+    versions = get_versions(site_slug)[0]
     if not versions:
-      raise NotFound('{}/{}'.format(site_name))
+      raise NotFound('{}/{}'.format(site_slug))
     version = versions[-1]
 
   return version
 
-def get_file_contents(site_name, version, file):
+def serve_static_file(site_slug, version, file):
   """
   Returns a file's contents. If the file is an HTML file, it will be
   preprocessed.
   """
 
-  site = config['site'].get(site_name)
-  if site is None:
-    raise NotFound(site_name)
-
+  site_name, site = get_site(site_slug)
   aliases = site.get('aliases')
+  alias = None
   if aliases and version in aliases:
-    version = aliases[version]
+    alias, version = version, aliases[version]
     if version == '$highest':
-      versions = get_versions(site_name)
+      versions = get_versions(site_slug)[0]
       if not versions:
-        raise NotFound('{}/{}'.format(site_name, version))
+        raise NotFound('{}/{}'.format(site_slug, version))
       version = versions[-1]
 
-  filename = os.path.join(site['path'], version, file)
-  if not os.path.isfile(filename):
-    raise NotFound('{}/{}/{}'.format(site_name, version, file)
+  request_file = file
+  dirname = os.path.join(site['path'], version)
+  if not file:
+    for index_file in site.get('index_files', ['index.html', 'index.htm']):
+      if os.path.isfile(os.path.join(dirname, index_file)):
+        file = index_file
+        break
+    else:
+      raise NotFound('{}/{}'.format(site_slug, version))
 
-  return filename
+  filename = os.path.join(dirname, file)
+  if not os.path.isfile(filename):
+    raise NotFound('{}/{}/{}'.fomrat(site_slug, version, file))
+
+  if filename.endswith('.html') or filename.endswith('.htm'):
+    # Preprocess the contents of the page.
+    with open(filename) as fp:
+      html = fp.read()
+    data = {
+      'alias': alias,
+      'version': version,
+      'file': request_file,
+      'site_name': site_name
+    }
+    for preproc in site.get('preprocessors', ['./preprocessor']):
+      html = require(preproc).preprocess_html(
+        module.namespace, site, data, html
+      )
+    return flask.Response(html, mimetype='text/html')
+
+  return flask.send_from_directory(dirname, file)

@@ -1,0 +1,18 @@
+{
+  "name": "@NiklasRosenstein/docbrowser",
+  "version": "0.0.1",
+  "description": "Serve statically generated HTML documentation with version switcher and Disqus platform.",
+  "author": "Niklas Rosenstein <rosensteinniklas@gmail.com>",
+  "license": "MIT",
+  "main": "docbrowser.py",
+  "extensions": [
+    "!require-import-syntax",
+    "@nodepy/werkzeug-reloader-patch"
+  ],
+  "python-dependencies": {
+    "Flask": ">=0.12.2"
+  },
+  "dependencies": {
+    "@nodepy/werkzeug-reloader-patch": "~0.0.3"
+  }
+}

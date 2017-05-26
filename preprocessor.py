@@ -17,26 +17,29 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+"""
+The default docbrowser preprocessor.
+"""
 
-import argparse
-import config
-import docbrowser
+import flask
+import textwrap
 
-parser = argparse.ArgumentParser()
-parser.add_argument('addr', nargs='?', help='[host:]port', default=config.address)
-parser.add_argument('--debug', action='store_true', default=config.debug)
+def preprocess_html(sites, site, data, html):
+  versions, aliases = sites.get_versions(site['slug'])
+  content = flask.render_template(
+    'docbrowser/partials/inject.html',
+    name=data['site_name'],
+    current_alias=data['alias'], current_version=data['version'],
+    aliases=aliases, versions=versions, slug=site['slug'],
+    disqus_id=sites.config.get('disqus_id'),
+    disqus_page_url=flask.url_for('view', slug=site['slug'], version=data['version'], file=data['file'], _external=True),
+    disqus_page_identifier=flask.request.path
+  )
 
-def main():
-  args = parser.parse_args()
-  addr = (args.addr or ':8000').split(':', 1)
-  if len(addr) == 1:
-    addr.insert(0, '0.0.0.0')
-  try:
-    addr[1] = int(addr[1])
-  except ValueError:
-    parser.error('port must be an integer, got {!r}'.format(addr[1]))
+  # Insert the content right at the beginning of the <body> tag.
+  index = html.find('<body>')
+  if index >= 0:
+    index += 6
+    html = html[:index] + content + html[index:]
 
-  docbrowser.app.run(host=addr[0], port=addr[1], debug=args.debug)
-
-if __name__ == '__main__':
-  main()
+  return html

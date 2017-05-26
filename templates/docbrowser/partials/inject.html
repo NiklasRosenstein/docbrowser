@@ -1,0 +1,46 @@
+<link rel="stylesheet" href="{{ static('docbrowser/inject.css') }}">
+<button id="docbrowser-open" onclick="docbrowser_open()"></button>
+<div id="docbrowser"><div class="inner">
+  <button id="docbrowser-close" onclick="docbrowser_close()"></button>
+  <h1>{{ name }}</h1>
+  <div class="row">
+    <span class="flex">Switch Version:</span>
+    {% include "docbrowser/partials/version-select.html" %}
+  </div>
+  {% if disqus_id %}
+    <br/>
+    <br/>
+    <div id="disqus_thread"></div>
+    <script>
+        var disqus_config = function () {
+            this.page.url = "{{ disqus_page_url }}";
+            this.page.identifier = "{{ disqus_page_identifier }}";
+        };
+        (function() {  // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://{{ disqus_id }}.disqus.com/embed.js';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+  {% endif %}
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.9.1/d3.min.js"></script>
+<script>
+function docbrowser_open() {
+  var w = '-' + docbrowser_width()
+  d3.select('#docbrowser').style('left', w)
+  d3.select("#docbrowser")
+    .transition()
+      .style('left', '0')
+}
+function docbrowser_width() {
+  return d3.select('#docbrowser .inner').node().getBoundingClientRect().width + 'px';
+}
+function docbrowser_close() {
+  d3.select("#docbrowser").transition()
+    .style('left', '-' + docbrowser_width())
+}
+d3.select('#docbrowser').style('left', '-' + docbrowser_width())
+</script>

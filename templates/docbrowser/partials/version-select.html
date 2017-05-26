@@ -1,0 +1,17 @@
+{# required variables: slug, aliases, versions #}
+{# optional variables: current_alias, current_version #}
+<select onchange="document.location=this.options[this.selectedIndex].getAttribute('data-url')">
+  {% for alias in aliases %}
+    {% set selected = "selected" if current_alias == alias else "" %}
+    {% set url = url_for('view', slug=slug, version=alias) %}
+    <option value="{{ alias }}" data-url="{{ url }}" {{ selected }}>{{ alias }}</option>
+    {% endfor %}
+  {% if aliases %}
+    <option disabled>──────────</option>
+  {% endif %}
+  {% for version in versions %}
+    {% set selected = "selected" if (not current_alias and current_version == version) else "" %}
+    {% set url = url_for('view', slug=slug, version=version) %}
+    <option value="{{ version }}" data-url="{{ url }}" {{ selected }}>{{ version }}</option>
+  {% endfor %}
+</select>
