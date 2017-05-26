@@ -35,6 +35,7 @@ app = flask.Flask(__name__)
 app.debug = config['debug']
 app.config['SERVER_NAME'] = config['server']
 app.jinja_env.globals.update({
+  'url_for': lambda *a, **k: flask.url_for(*a, **k).rstrip('/'),
   'static': lambda fn: flask.url_for('static', filename=fn)
 })
 
@@ -54,10 +55,19 @@ def view(slug, version=None, file=None):
     # alias is defined, or otherwise the highest version).
     try:
       version = sites.get_index_redirect(slug)
+      file = sites.get_index_file(slug, version)
     except sites.NotFound:
       flask.abort(404)
     return flask.redirect(
-      flask.url_for('view', slug=slug, version=version)
+      flask.url_for('view', slug=slug, version=version, file=file)
+    )
+  if file is None:
+    try:
+      file = sites.get_index_file(slug, version)
+    except sites.NotFound:
+      flask.abort(404)
+    return flask.redirect(
+      flask.url_for('view', slug=slug, version=version, file=file)
     )
 
   try:
@@ -65,20 +75,12 @@ def view(slug, version=None, file=None):
   except sites.NotFound:
     flask.abort(404)
 
-  """
-  doredirect = (flask.request.args.get('doredirect') == 'true')
-  try:
-    mount = find_mount_by_slug(slug)
-    response = serve_doc_file(mount, version, file, check_only=doredirect)
-  except werkzeug.exceptions.NotFound:
-    if doredirect and file:
-      return flask.redirect(flask.url_for('doc_index', slug=slug))
-    raise
-  if doredirect:
-    # Redirect to the same page without the ?doredirect=true part.
-    return flask.redirect(flask.url_for('doc', slug=slug, version=version, file=file))
-  return response
-  """
+@app.errorhandler(404)
+def error_404(exc):
+  return flask.Response(
+    flask.render_template('docbrowser/404.html'),
+    404
+  )
 
 if require.main == module:
   app.run(host=config['host'], port=config['port'])

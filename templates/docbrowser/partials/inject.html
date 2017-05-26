@@ -1,10 +1,9 @@
 <link rel="stylesheet" href="{{ static('docbrowser/inject.css') }}">
 <button id="docbrowser-open" onclick="docbrowser_open()"></button>
 <div id="docbrowser"><div class="inner">
-  <button id="docbrowser-close" onclick="docbrowser_close()"></button>
-  <h1>{{ name }}</h1>
   <div class="row">
-    <span class="flex">Switch Version:</span>
+    <button id="docbrowser-close" onclick="docbrowser_close()"></button>
+    <span class="flex doc-title">{{ name }}</span>
     {% include "docbrowser/partials/version-select.html" %}
   </div>
   {% if disqus_id %}

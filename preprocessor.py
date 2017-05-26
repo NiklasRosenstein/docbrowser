@@ -28,18 +28,19 @@ def preprocess_html(sites, site, data, html):
   versions, aliases = sites.get_versions(site['slug'])
   content = flask.render_template(
     'docbrowser/partials/inject.html',
-    name=data['site_name'],
+    name=data['site_name'], file=data['file'],
     current_alias=data['alias'], current_version=data['version'],
     aliases=aliases, versions=versions, slug=site['slug'],
     disqus_id=sites.config.get('disqus_id'),
-    disqus_page_url=flask.url_for('view', slug=site['slug'], version=data['version'], file=data['file'], _external=True),
+    disqus_page_url=flask.url_for(
+      'view', slug=site['slug'], version=data['version'], file=data['file'], _external=True
+    ),
     disqus_page_identifier=flask.request.path
   )
 
-  # Insert the content right at the beginning of the <body> tag.
-  index = html.find('<body>')
+  # Insert the content right at the end of the <body> tag.
+  index = html.find('</body>')
   if index >= 0:
-    index += 6
     html = html[:index] + content + html[index:]
 
   return html

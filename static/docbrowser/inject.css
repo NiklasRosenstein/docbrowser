@@ -23,6 +23,10 @@
 #docbrowser .flex {
   flex: 1;
 }
+#docbrowser span.doc-title {
+  font: 200% monospace;
+  font-weight: bold;
+}
 #docbrowser hr {
   border: 0px solid gray;
   border-bottom-width: 1px;
@@ -36,15 +40,17 @@
   cursor: pointer;
 }
 #docbrowser-close {
-  float: right;
   background-image: url(/static/docbrowser/previous.png);
 }
 #docbrowser-open {
   transition: left 0.5s;
   position: fixed;
-  left: -10px;
-  bottom: 2em;
+  left: -5px;
+  top: 1.5em;
   background-image: url(/static/docbrowser/next.png);
+  background-color: white;
+  border-radius: 100px;
+  box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.3);
 }
 #docbrowser-open:hover {
   left: 0;

@@ -11,6 +11,11 @@
         "latest": "$highest",
         "stable": "v1.0.0"
       }
+    },
+    "Cinema 4D C++ SDK": {
+      "slug": "c4d-cpp",
+      "path": "~/Downloads",
+      "index_page": "html/index.html"
     }
   },
   "disqus_id": "niklasrosenstein-com"

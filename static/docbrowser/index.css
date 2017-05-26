@@ -1,5 +1,6 @@
 html {
   font: 16px monospace;
-  color: #eee;
-  background-color: #333;
+}
+th {
+  text-align: left;
 }

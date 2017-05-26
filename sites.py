@@ -111,6 +111,17 @@ def get_index_redirect(site_slug):
 
   return version
 
+def get_index_file(site_slug, version):
+  """
+  Returns the name of the main index file to redirect to for a given version.
+  """
+
+  site = get_site(site_slug)[1]
+  index = site.get('index_page')
+  if isinstance(index, dict):
+    return index.get(version, index.get('_default', 'index.html'))
+  return index or 'index.html'
+
 def serve_static_file(site_slug, version, file):
   """
   Returns a file's contents. If the file is an HTML file, it will be
@@ -129,7 +140,7 @@ def serve_static_file(site_slug, version, file):
       version = versions[-1]
 
   request_file = file
-  dirname = os.path.join(site['path'], version)
+  dirname = os.path.join(os.path.expanduser(site['path']), version)
   if not file:
     for index_file in site.get('index_files', ['index.html', 'index.htm']):
       if os.path.isfile(os.path.join(dirname, index_file)):
@@ -140,12 +151,12 @@ def serve_static_file(site_slug, version, file):
 
   filename = os.path.join(dirname, file)
   if not os.path.isfile(filename):
-    raise NotFound('{}/{}/{}'.fomrat(site_slug, version, file))
+    raise NotFound('{}/{}/{}'.format(site_slug, version, file))
 
   if filename.endswith('.html') or filename.endswith('.htm'):
     # Preprocess the contents of the page.
-    with open(filename) as fp:
-      html = fp.read()
+    with open(filename, 'rb') as fp:
+      html = fp.read().decode('utf8', 'replace')
     data = {
       'alias': alias,
       'version': version,

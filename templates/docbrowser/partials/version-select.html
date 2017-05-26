@@ -3,7 +3,7 @@
 <select onchange="document.location=this.options[this.selectedIndex].getAttribute('data-url')">
   {% for alias in aliases %}
     {% set selected = "selected" if current_alias == alias else "" %}
-    {% set url = url_for('view', slug=slug, version=alias) %}
+    {% set url = url_for('view', slug=slug, version=alias, file=file) %}
     <option value="{{ alias }}" data-url="{{ url }}" {{ selected }}>{{ alias }}</option>
     {% endfor %}
   {% if aliases %}
@@ -11,7 +11,7 @@
   {% endif %}
   {% for version in versions %}
     {% set selected = "selected" if (not current_alias and current_version == version) else "" %}
-    {% set url = url_for('view', slug=slug, version=version) %}
+    {% set url = url_for('view', slug=slug, version=version, file=file) %}
     <option value="{{ version }}" data-url="{{ url }}" {{ selected }}>{{ version }}</option>
   {% endfor %}
 </select>
