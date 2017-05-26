@@ -7,14 +7,17 @@
   overflow: hidden;
   pointer-events: none;
 }
+#docbrowser * {
+  font-family: monospace;
+}
 #docbrowser .inner {
   pointer-events: auto;
   height: 100%;
   padding: 1em;
   background-color: white;
   border-right: 1px solid gray;
-  font: 16px monospace;
-  width: 600px
+  width: 600px;
+  box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.3);
 }
 #docbrowser .row {
   display: flex;
